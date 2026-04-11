@@ -1,0 +1,152 @@
+name: Cybersecurity ChatboT
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+    
+    - name: Restore dependencies
+      run: dotnet restore
+      working-directory: .
+    
+    - name: Build project
+      run: dotnet build --configuration Release --no-restore
+      working-directory: .
+    
+    - name: Run syntax check
+      run: |
+        echo "Running syntax validation..."
+        dotnet build --no-incremental --verbosity detailed
+      working-directory: .
+    
+    - name: Check for required files
+      run: |
+        $requiredFiles = @(
+          "Program.cs",
+          "audio_greeting.cs", 
+          "arcii_art.cs",
+          "welcoming_user.cs",
+          "chatbot_responce.cs",
+          "greeting.wav.wav"
+        )
+        
+        foreach ($file in $requiredFiles) {
+          if (Test-Path $file) {
+            Write-Host "✓ $file found"
+          } else {
+            Write-Host "✗ $file missing"
+            exit 1
+          }
+        }
+      working-directory: .
+    
+    - name: Verify classes exist
+      run: |
+        $classes = @(
+          "audio_greeting",
+          "arcii_art", 
+          "welcoming_user",
+          "chatbot_responce"
+        )
+        
+        foreach ($class in $classes) {
+          $found = Select-String -Path "*.cs" -Pattern "class $class" -SimpleMatch
+          if ($found) {
+            Write-Host "✓ Class $class found"
+          } else {
+            Write-Host "✗ Class $class missing"
+            exit 1
+          }
+        }
+      working-directory: .
+    
+    - name: Check for Main method
+      run: |
+        $mainFound = Select-String -Path "Program.cs" -Pattern "static void Main" -SimpleMatch
+        if ($mainFound) {
+          Write-Host "✓ Main method found"
+        } else {
+          Write-Host "✗ Main method not found"
+          exit 1
+        }
+      working-directory: .
+    
+    - name: Verify namespace consistency
+      run: |
+        $namespace = "cybersecurity_ai"
+        $files = Get-ChildItem -Path . -Filter "*.cs" -Recurse
+        
+        foreach ($file in $files) {
+          $content = Get-Content $file.FullName
+          if ($content -match "namespace $namespace") {
+            Write-Host "✓ $($file.Name) uses correct namespace"
+          } elseif ($content -match "namespace") {
+            Write-Host "⚠️ $($file.Name) uses different namespace"
+          }
+        }
+      working-directory: .
+    
+    - name: Check for empty input validation
+      run: |
+        $hasValidation = Select-String -Path "chatbot_responce.cs" -Pattern "IsExitCommand|IsNullOrWhiteSpace|EmptyInputResponse" -SimpleMatch
+        if ($hasValidation) {
+          Write-Host "✓ Input validation found"
+        } else {
+          Write-Host "⚠️ Input validation may be incomplete"
+        }
+      working-directory: .
+    
+    - name: Check for cybersecurity topics
+      run: |
+        $topics = @("password", "phish", "brows", "malware", "social", "2fa")
+        $found = 0
+        
+        foreach ($topic in $topics) {
+          $result = Select-String -Path "chatbot_responce.cs" -Pattern $topic -SimpleMatch -CaseSensitive:$false
+          if ($result) {
+            Write-Host "✓ Topic '$topic' covered"
+            $found++
+          } else {
+            Write-Host "⚠️ Topic '$topic' may not be covered"
+          }
+        }
+        
+        Write-Host "Topics covered: $found of $($topics.Length)"
+      working-directory: .
+    
+    - name: Display build summary
+      run: |
+        Write-Host "======================================="
+        Write-Host "BUILD SUMMARY"
+        Write-Host "======================================="
+        Write-Host "Project: Cybersecurity Awareness Bot"
+        Write-Host "Status: Build successful"
+        Write-Host "Platform: Windows"
+        Write-Host "Framework: .NET 8.0"
+        Write-Host "======================================="
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: build-output
+        path: |
+          bin/Release/
+          *.cs
+          README.md
+        retention-days: 7
