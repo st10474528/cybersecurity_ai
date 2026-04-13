@@ -1,3 +1,5 @@
+<img width="1510" height="806" alt="Screenshot 2026-04-13 194509" src="https://github.com/user-attachments/assets/c66d576f-52dd-4fe8-b96a-4c199b9426c7" />
+
 # 🔒 Cybersecurity Awareness Chatbot - NECH
 
 ## Project Overview
